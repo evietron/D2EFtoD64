@@ -77,6 +77,7 @@ namespace D2EFtoD64
             fs.Close();
 
             int bankOffset = 0x4362;
+            int fileCount = 0;
             while (banks[bankOffset + 0] != '\0')
             {
                 if (banks[bankOffset + 0] != '$')
@@ -113,6 +114,16 @@ namespace D2EFtoD64
                     fsw.Write(banks, bank * 0x4000 + (offset & 0x3fff), size);
                     fsw.Close();
 
+                    if (fileCount >= 296)
+                    {
+                        fileCount -= 296;
+                        prefix += "2";
+                        psi = new ProcessStartInfo("c1541", "-format d2ef,df " + suffix + " \"" + prefix + "." + suffix + "\"");
+                        psi.RedirectStandardOutput = true;
+                        p = Process.Start(psi);
+                        p.WaitForExit();
+                    }
+
                     psi = new ProcessStartInfo("c1541", "\"" + prefix + "." + suffix + "\" -write " + converted);
                     psi.RedirectStandardOutput = true;
                     p = Process.Start(psi);
@@ -125,6 +136,8 @@ namespace D2EFtoD64
                     byte[] dataread = new byte[fsr.Length];
                     fsr.Read(dataread);
                     int found = search(dataread, Encoding.UTF8.GetBytes(converted.ToUpper()));
+                    fileCount++;
+
                     if (found != -1)
                     {
                         fsr.Seek(found, SeekOrigin.Begin);
