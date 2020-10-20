@@ -107,7 +107,8 @@ namespace D2EFtoD64
                     int addr = banks[bankOffset + 20] + (banks[bankOffset + 21] << 8);
                     int size = banks[bankOffset + 22] + (banks[bankOffset + 23] << 8);
 
-                    string converted = "c0nv3r4ted1x2x3x";
+                    Random random = new Random();
+                    string converted = "converted" + random.Next(1000000, 10000000);
                     FileStream fsw = File.OpenWrite(converted);
                     fsw.WriteByte((byte)addr);
                     fsw.WriteByte((byte)(addr >> 8));
@@ -163,16 +164,20 @@ namespace D2EFtoD64
             }
             else
             {
-                try
+                for (int i = 0; i < args.Length; i++)
                 {
-                    Console.WriteLine("CONVERTING: " + args[0]);
-                    parse(args[0]);
-                } catch (Exception e)
-                {
-                    Console.WriteLine("FAILED: " + e.Message);
-                    new FileInfo("tempfile").Delete();
-                    new FileInfo(args[0].Substring(0, args[0].LastIndexOf('.')) + ".d64").Delete();
-                    new FileInfo(args[0].Substring(0, args[0].LastIndexOf('.')) + ".d81").Delete();
+                    try
+                    {
+                        Console.WriteLine("CONVERTING: " + args[i]);
+                        parse(args[i]);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("FAILED: " + e.Message);
+                        new FileInfo("tempfile").Delete();
+                        new FileInfo(args[i].Substring(0, args[i].LastIndexOf('.')) + ".d64").Delete();
+                        new FileInfo(args[i].Substring(0, args[i].LastIndexOf('.')) + ".d81").Delete();
+                    }
                 }
             }
         }
