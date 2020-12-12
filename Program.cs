@@ -52,32 +52,25 @@ namespace D2EFtoD64
             return -1;
         }
 
-        static void parse(string filename)
+        static bool tryBankOffset(int bankOffset, string prefix, string suffix)
         {
-            string prefix = filename.Substring(0, filename.LastIndexOf('.'));
-            FileStream fs = File.Open(filename, FileMode.Open);
-            string suffix = "d64";
-            if (fs.Length > 664 * 254)
+            for (int i = 0; i < 5; i++)
             {
-                suffix = "d81";
-            }
-            if (fs.Length > 3160 * 254)
-            {
-                throw new Exception("Too big!");
+                if (banks[bankOffset - 1 - i] != 0x20)
+                {
+                    return false;
+                }
             }
 
-            ProcessStartInfo psi = new ProcessStartInfo("c1541", "-format d2ef,df " + suffix + " \"" + prefix + "." + suffix + "\"");
-            psi.RedirectStandardOutput = true;
-            Process p = Process.Start(psi);
-            p.WaitForExit();
+            if (banks[bankOffset] == 0x20)
+            {
+                return false;
+            }
 
-            scanBanks(fs);
-            readBanks(fs);
-
-            fs.Close();
-
-            int bankOffset = 0x4362;
             int fileCount = 0;
+            ProcessStartInfo psi;
+            Process p;
+
             while (banks[bankOffset + 0] != '\0')
             {
                 if (banks[bankOffset + 0] != '$')
@@ -128,7 +121,7 @@ namespace D2EFtoD64
                     psi = new ProcessStartInfo("c1541", "\"" + prefix + "." + suffix + "\" -write " + converted);
                     psi.RedirectStandardOutput = true;
                     p = Process.Start(psi);
-                    
+
                     p.WaitForExit();
 
                     new FileInfo(converted).Delete();
@@ -153,14 +146,60 @@ namespace D2EFtoD64
                 bankOffset += 24;
             }
 
+            return true;
+        }
+
+        static void parse(string filename)
+        {
+            string prefix = filename.Substring(0, filename.LastIndexOf('.'));
+            FileStream fs = File.Open(filename, FileMode.Open);
+            string suffix = "d64";
+            if (fs.Length > 664 * 254)
+            {
+                suffix = "d81";
+            }
+            if (fs.Length > 3160 * 254)
+            {
+                throw new Exception("Too big!");
+            }
+
+            ProcessStartInfo psi = new ProcessStartInfo("c1541", "-format d2ef,df " + suffix + " \"" + prefix + "." + suffix + "\"");
+            psi.RedirectStandardOutput = true;
+            Process p = Process.Start(psi);
+            p.WaitForExit();
+
+            scanBanks(fs);
+            readBanks(fs);
+
             fs.Close();
+
+            if (tryBankOffset(0x451D, prefix, suffix))
+            {
+                return;
+            }
+
+            if (tryBankOffset(0x452A, prefix, suffix))
+            {
+                return;
+            }
+
+            if (tryBankOffset(0x4362, prefix, suffix))
+            {
+                return;
+            }
+
+            throw new Exception("not a D2EF CRT");
         }
 
         static void Main(string[] args)
         {
             if (args.Length == 0)
             {
-                Console.WriteLine("D2EFtoD64 <filename.crt>");
+                foreach (FileInfo fi in new DirectoryInfo(".").GetFiles("*.crt"))
+                {
+                    Console.WriteLine("CONVERTING: " + fi.Name);
+                    parse(fi.FullName);
+                }
             }
             else
             {
