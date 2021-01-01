@@ -165,13 +165,27 @@ namespace D2EFtoD64
 
             ProcessStartInfo psi = new ProcessStartInfo("c1541", "-format d2ef,df " + suffix + " \"" + prefix + "." + suffix + "\"");
             psi.RedirectStandardOutput = true;
-            Process p = Process.Start(psi);
-            p.WaitForExit();
+            Process p;
+
+            try
+            {
+                p = Process.Start(psi);
+                p.WaitForExit();
+            }
+            catch (Exception)
+            {
+                throw new Exception("can't find C1541 in path (add VICE bin to path)");
+            }
 
             scanBanks(fs);
             readBanks(fs);
 
             fs.Close();
+
+            if (tryBankOffset(0x4362, prefix, suffix))
+            {
+                return;
+            }
 
             if (tryBankOffset(0x451D, prefix, suffix))
             {
@@ -183,7 +197,7 @@ namespace D2EFtoD64
                 return;
             }
 
-            if (tryBankOffset(0x4362, prefix, suffix))
+            if (tryBankOffset(0x4544, prefix, suffix))
             {
                 return;
             }
@@ -197,8 +211,18 @@ namespace D2EFtoD64
             {
                 foreach (FileInfo fi in new DirectoryInfo(".").GetFiles("*.crt"))
                 {
-                    Console.WriteLine("CONVERTING: " + fi.Name);
-                    parse(fi.FullName);
+                    try
+                    {
+                        Console.WriteLine("CONVERTING: " + fi.Name);
+                        parse(fi.FullName);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("FAILED: " + e.Message);
+                        new FileInfo("tempfile").Delete();
+                        new FileInfo(fi.Name.Substring(0, fi.Name.LastIndexOf('.')) + ".d64").Delete();
+                        new FileInfo(fi.Name.Substring(0, fi.Name.LastIndexOf('.')) + ".d81").Delete();
+                    }
                 }
             }
             else
