@@ -6,4 +6,4 @@ Does not do any additional processing other than copying files out.
 
 Requires C1541 (part of VICE).
 
-Built for Mac OSX, may require modifications for Windows use.
+Build with Visual Studio.
